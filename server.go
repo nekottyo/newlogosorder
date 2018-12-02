@@ -5,6 +5,8 @@ import (
 
 	"github.com/bluele/mecab-golang"
 	"github.com/gin-gonic/gin"
+
+	"unicode/utf8"
 )
 import "strings"
 
@@ -20,14 +22,19 @@ func main() {
 		node := parseToNode(text, m)
 
 		for {
-			words = append(words, node.Feature())
-			//			features := strings.Split(node.Feature(), ",")
-			//words = extractSurface(features)
+			features := strings.Split(node.Feature(), ",")
+			word := features[6]
+			if extractSurface(features) {
+				words = append(words, censorship(word))
+			} else {
+				words = append(words, word)
+			}
+
 			if node.Next() != nil {
 				break
 			}
 		}
-		c.String(200, strings.Join(words[:], "\n"))
+		c.String(200, strings.Join(words[:], ""))
 	})
 	r.Run(":8080")
 }
@@ -53,9 +60,17 @@ func parseToNode(text string, m *mecab.MeCab) *mecab.Node {
 	return node
 }
 
-func extractSurface(feature []string) string {
+func extractSurface(feature []string) bool {
 	if feature[0] == "名詞" {
-		return feature[1]
+		return true
 	}
-	return ""
+	return false
+}
+
+func censorship(word string) string {
+	text := []string{}
+	for i := 0; i < utf8.RuneCountInString(word); i++ {
+		text = append(text, "█")
+	}
+	return strings.Join(text[:], "")
 }
